@@ -1,0 +1,106 @@
+name: Update Formula
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [new-release]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get latest release
+        id: release
+        run: |
+          VERSION=$(curl -s https://api.github.com/repos/eugenioenko/ttt/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Latest release: $VERSION"
+
+      - name: Check if update needed
+        id: check
+        run: |
+          CURRENT=$(grep 'version "' Formula/ttt.rb | head -1 | sed 's/.*version "//;s/"//')
+          echo "Current: $CURRENT"
+          echo "Latest: ${{ steps.release.outputs.version }}"
+          if [ "$CURRENT" = "${{ steps.release.outputs.version }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already up to date"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download binaries and compute hashes
+        if: steps.check.outputs.skip == 'false'
+        id: hashes
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          BASE="https://github.com/eugenioenko/ttt/releases/download/v${VERSION}"
+          for bin in darwin-arm64 darwin-amd64 linux-arm64 linux-amd64; do
+            HASH=$(curl -sL "${BASE}/ttt-${bin}" | sha256sum | cut -d' ' -f1)
+            KEY=$(echo "$bin" | tr '-' '_')
+            echo "${KEY}=${HASH}" >> "$GITHUB_OUTPUT"
+            echo "ttt-${bin}: ${HASH}"
+          done
+
+      - name: Update formula
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          VERSION="${{ steps.release.outputs.version }}"
+          cat > Formula/ttt.rb << 'RUBY'
+          class Ttt < Formula
+            desc "Terminal text editor"
+            homepage "https://tttedit.dev"
+            version "VERSION_PLACEHOLDER"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/eugenioenko/ttt/releases/download/vVERSION_PLACEHOLDER/ttt-darwin-arm64"
+                sha256 "DARWIN_ARM64_PLACEHOLDER"
+              else
+                url "https://github.com/eugenioenko/ttt/releases/download/vVERSION_PLACEHOLDER/ttt-darwin-amd64"
+                sha256 "DARWIN_AMD64_PLACEHOLDER"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/eugenioenko/ttt/releases/download/vVERSION_PLACEHOLDER/ttt-linux-arm64"
+                sha256 "LINUX_ARM64_PLACEHOLDER"
+              else
+                url "https://github.com/eugenioenko/ttt/releases/download/vVERSION_PLACEHOLDER/ttt-linux-amd64"
+                sha256 "LINUX_AMD64_PLACEHOLDER"
+              end
+            end
+
+            def install
+              binary = Dir.glob("ttt-*").first || "ttt"
+              bin.install binary => "ttt"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/ttt --version 2>&1", 0)
+            end
+          end
+          RUBY
+          # Remove leading whitespace from heredoc
+          sed -i 's/^          //' Formula/ttt.rb
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" Formula/ttt.rb
+          sed -i "s/DARWIN_ARM64_PLACEHOLDER/${{ steps.hashes.outputs.darwin_arm64 }}/g" Formula/ttt.rb
+          sed -i "s/DARWIN_AMD64_PLACEHOLDER/${{ steps.hashes.outputs.darwin_amd64 }}/g" Formula/ttt.rb
+          sed -i "s/LINUX_ARM64_PLACEHOLDER/${{ steps.hashes.outputs.linux_arm64 }}/g" Formula/ttt.rb
+          sed -i "s/LINUX_AMD64_PLACEHOLDER/${{ steps.hashes.outputs.linux_amd64 }}/g" Formula/ttt.rb
+          echo "Updated formula:"
+          cat Formula/ttt.rb
+
+      - name: Commit and push
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/ttt.rb
+          git commit -m "bump ttt to v${{ steps.release.outputs.version }}"
+          git push
