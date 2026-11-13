@@ -1,26 +1,26 @@
 class Ttt < Formula
   desc "Terminal text editor"
   homepage "https://tttedit.dev"
-  version "1.12.0"
+  version "1.12.1"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.0/ttt-darwin-arm64"
-      sha256 "08e40ce7e701740412b4886975badd07745f00451aee20f8ae17d67dae030527"
+      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.1/ttt-darwin-arm64"
+      sha256 "bff1d6cd8329c9a81719cf870fed4de047d6432e90db3fb4421d4dc9987dda1c"
     else
-      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.0/ttt-darwin-amd64"
-      sha256 "c59663e07d95bed9134c9ea2dbf95a59683b7b505a0796a4797ec066cbda1927"
+      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.1/ttt-darwin-amd64"
+      sha256 "2e9a21deefd44d86aa0d713c7f47a558ecdfd19c00810639e95f5baf317162d4"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.0/ttt-linux-arm64"
-      sha256 "dbf19a023157969579f0edf9014b866dfdff924eb8560f89012c1cfb96d03bf3"
+      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.1/ttt-linux-arm64"
+      sha256 "f88c3f38b726efb1ce35dede745e6a0f3d7083c15fd6f75f17dc8fb68c7c857b"
     else
-      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.0/ttt-linux-amd64"
-      sha256 "de6d186c723fae925d7d5297d7262e6985cc87c144cffc9692086e5a53d1dde7"
+      url "https://github.com/eugenioenko/ttt/releases/download/v1.12.1/ttt-linux-amd64"
+      sha256 "e6b5bb64b897810349fb46f8319559f65c6e5f1a40e26a93bd6860b6f7f7b6de"
     end
   end
 
